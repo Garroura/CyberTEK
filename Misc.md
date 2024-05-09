@@ -109,7 +109,8 @@ if get_objects.status_code == 200:
         else:
             print("Failed to download:", blob.status_code)
 ```
-``
+
+````
 import os
 import zlib
 folder_path = '`File'
@@ -123,6 +124,7 @@ for filename in os.listdir(folder_path):
         a = (zlib.decompress(ct))
         print(f" : {file_path} :  {a}")
     except : continue
-``
+````
+
 `Securinets{y43h_n0w_U_Kn0W_Wh4T_15_917_bL0bS}`
 
